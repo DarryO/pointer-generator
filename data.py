@@ -38,7 +38,7 @@ STOP_DECODING = '[STOP]'  # This has a vocab id, which is used at the end of unt
 class Vocab(object):
     """Vocabulary class for mapping between words and ids (integers)"""
 
-    def __init__(self, vocab_file, max_size):
+    def __init__(self, vocab_file, pos_vocab_file, ner_vocab_file, max_size):
         """Creates a vocab of up to max_size words, reading from the vocab_file. If max_size is 0, reads the entire vocab file.
 
         Args:
@@ -46,6 +46,15 @@ class Vocab(object):
           max_size: integer. The maximum size of the resulting Vocabulary."""
         self._word_to_id = {}
         self._id_to_word = {}
+
+        self._pos_word_to_id = {}
+        self._pos_id_to_word = {}
+        self._pos_count = 0
+
+        self._ner_word_to_id = {}
+        self._ner_id_to_word = {}
+        self._ner_count = 0
+
         self._count = 0  # keeps track of total number of words in the Vocab
 
         # [UNK], [PAD], [START] and [STOP] get the ids 0,1,2,3.
@@ -53,6 +62,14 @@ class Vocab(object):
             self._word_to_id[w] = self._count
             self._id_to_word[self._count] = w
             self._count += 1
+
+            self._pos_word_to_id[w] = self._pos_count
+            self._pos_id_to_word[self._pos_count] = w
+            self._pos_count += 1
+
+            self._ner_word_to_id[w] = self._ner_count
+            self._ner_id_to_word[self._ner_count] = w
+            self._ner_count += 1
 
         # Read the vocab file and add words up to max_size
         with open(vocab_file, 'r') as vocab_f:
@@ -75,8 +92,54 @@ class Vocab(object):
                     max_size, self._count)
                     break
 
+        # Read the vocab file and add words up to max_size
+        with open(pos_vocab_file, 'r') as vocab_f:
+            for line in vocab_f:
+                pieces = line.split()
+                if len(pieces) != 2:
+                    print 'Warning: incorrectly formatted line in vocabulary file: %s\n' % line
+                    continue
+                w = pieces[0]
+                if w in [SENTENCE_START, SENTENCE_END, UNKNOWN_TOKEN, PAD_TOKEN, START_DECODING, STOP_DECODING]:
+                    raise Exception(
+                        '<s>, </s>, [UNK], [PAD], [START] and [STOP] shouldn\'t be in the vocab file, but %s is' % w)
+                if w in self._pos_word_to_id:
+                    raise Exception('Duplicated word in vocabulary file: %s' % w)
+                self._pos_word_to_id[w] = self._pos_count
+                self._pos_id_to_word[self._pos_count] = w
+                self._pos_count += 1
+                if max_size != 0 and self._pos_count >= max_size:
+                    print "max_size of vocab was specified as %i; we now have %i words. Stopping reading." % (
+                        max_size, self._pos_count)
+                    break
+
+        # Read the vocab file and add words up to max_size
+        with open(ner_vocab_file, 'r') as vocab_f:
+            for line in vocab_f:
+                pieces = line.split()
+                if len(pieces) != 2:
+                    print 'Warning: incorrectly formatted line in vocabulary file: %s\n' % line
+                    continue
+                w = pieces[0]
+                if w in [SENTENCE_START, SENTENCE_END, UNKNOWN_TOKEN, PAD_TOKEN, START_DECODING, STOP_DECODING]:
+                    raise Exception(
+                        '<s>, </s>, [UNK], [PAD], [START] and [STOP] shouldn\'t be in the vocab file, but %s is' % w)
+                if w in self._ner_word_to_id:
+                    raise Exception('Duplicated word in vocabulary file: %s' % w)
+                self._ner_word_to_id[w] = self._ner_count
+                self._ner_id_to_word[self._ner_count] = w
+                self._ner_count += 1
+                if max_size != 0 and self._ner_count >= max_size:
+                    print "max_size of vocab was specified as %i; we now have %i words. Stopping reading." % (
+                        max_size, self._ner_count)
+                    break
+
         print "Finished constructing vocabulary of %i total words. Last word added: %s" % (
-        self._count, self._id_to_word[self._count - 1])
+               self._count, self._id_to_word[self._count - 1])
+        print "Finished constructing pos vocabulary of %i total words. Last word added: %s" % (
+            self._pos_count, self._pos_id_to_word[self._pos_count - 1])
+        print "Finished constructing vocabulary of %i total words. Last word added: %s" % (
+            self._ner_count, self._ner_id_to_word[self._ner_count - 1])
 
     def word2id(self, word):
         """Returns the id (integer) of a word (string). Returns [UNK] id if word is OOV."""
@@ -90,9 +153,37 @@ class Vocab(object):
             raise ValueError('Id not found in vocab: %d' % word_id)
         return self._id_to_word[word_id]
 
+    def pos_word2id(self, pos_word):
+        if pos_word not in self._pos_word_to_id:
+            return self._pos_word_to_id[UNKNOWN_TOKEN]
+        return self._pos_word_to_id[pos_word]
+
+    def pos_id2word(self, pos_id):
+        if pos_id not in self._pos_id_to_word:
+            raise ValueError('Id not found in vocab: %d' % pos_id)
+        return self._pos_id_to_word[pos_id]
+
+    def ner_word2id(self, ner_word):
+        if ner_word not in self._ner_word_to_id:
+            return self._ner_word_to_id[UNKNOWN_TOKEN]
+        return self._ner_word_to_id[ner_word]
+
+    def ner_id2word(self, ner_id):
+        if ner_id not in self._ner_id_to_word:
+            raise ValueError('Id not found in vocab: %d' % ner_id)
+        return self._ner_id_to_word[ner_id]
+
     def size(self):
         """Returns the total size of the vocabulary"""
         return self._count
+
+    def pos_size(self):
+        """Returns the total size of the pos vocabulary"""
+        return self._pos_count
+
+    def ner_size(self):
+        """Returns the total size of the ner vocabulary"""
+        return self._ner_count
 
     def write_metadata(self, fpath):
         """Writes metadata file for Tensorboard word embedding visualizer as described here:
@@ -107,6 +198,18 @@ class Vocab(object):
             writer = csv.DictWriter(f, delimiter="\t", fieldnames=fieldnames)
             for i in xrange(self.size()):
                 writer.writerow({"word": self._id_to_word[i]})
+
+        with open(fpath + '.pos', "w") as f:
+            fieldnames = ['pos']
+            writer = csv.DictWriter(f, delimiter="\t", fieldnames=fieldnames)
+            for i in xrange(self.pos_size()):
+                writer.writerow({"pos": self._pos_id_to_word[i]})
+
+        with open(fpath + '.ner', "w") as f:
+            fieldnames = ['ner']
+            writer = csv.DictWriter(f, delimiter="\t", fieldnames=fieldnames)
+            for i in xrange(self.ner_size()):
+                writer.writerow({"ner": self._ner_id_to_word[i]})
 
 
 def example_generator(data_path, single_pass):

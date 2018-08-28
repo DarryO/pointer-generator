@@ -28,7 +28,7 @@ import data
 class Example(object):
     """Class representing a train/val/test example for text summarization."""
 
-    def __init__(self, article, abstract_sentences, vocab, hps):
+    def __init__(self, article, article_pos, article_ner, abstract_sentences, vocab, hps):
         """Initializes the Example, performing tokenization and truncation to produce the encoder, decoder and target sequences, which are stored in self.
 
         Args:
@@ -45,11 +45,23 @@ class Example(object):
 
         # Process the article
         article_words = article.split()
+        article_pos_words = article_pos.split()
+        article_ner_words = article_ner.split()
+
+        assert len(article_words) == len(article_pos), "Words and pos tagging not equal!"
+        assert len(article_words) == len(article_ner), "Words and ner tagging not equal!"
+
         if len(article_words) > hps.max_enc_steps:
             article_words = article_words[:hps.max_enc_steps]
+            article_pos_words = article_pos_words[:hps.max_enc_steps]
+            article_ner_words = article_ner_words[:hps.max_enc_steps]
         self.enc_len = len(article_words)  # store the length after truncation but before padding
         self.enc_input = [vocab.word2id(w) for w in
                           article_words]  # list of word ids; OOVs are represented by the id for UNK token
+        self.enc_pos_input = [vocab.pos_word2id(w) for w in
+                              article_pos_words]  # list of word ids; OOVs are represented by the id for UNK token
+        self.enc_ner_input = [vocab.ner_word2id(w) for w in
+                              article_ner_words]  # list of word ids; OOVs are represented by the id for UNK token
 
         # Process the abstract
         abstract = ' '.join(abstract_sentences)  # string
@@ -77,6 +89,8 @@ class Example(object):
         # Store the original strings
         self.original_article = article
         self.original_abstract = abstract
+        self.original_article_pos = article_pos
+        self.original_article_ner = article_ner
         self.original_abstract_sents = abstract_sentences
 
     def get_dec_inp_targ_seqs(self, sequence, max_len, start_id, stop_id):
@@ -113,6 +127,8 @@ class Example(object):
         """Pad the encoder input sequence with pad_id up to max_len."""
         while len(self.enc_input) < max_len:
             self.enc_input.append(pad_id)
+            self.enc_pos_input.append(pad_id)
+            self.enc_ner_input.append(pad_id)
         if self.hps.pointer_gen:
             while len(self.enc_input_extend_vocab) < max_len:
                 self.enc_input_extend_vocab.append(pad_id)
@@ -161,12 +177,16 @@ class Batch(object):
         # Initialize the numpy arrays
         # Note: our enc_batch can have different length (second dimension) for each batch because we use dynamic_rnn for the encoder.
         self.enc_batch = np.zeros((hps.batch_size, max_enc_seq_len), dtype=np.int32)
+        self.enc_pos_batch = np.zeros((hps.batch_size, max_enc_seq_len), dtype=np.int32)
+        self.enc_ner_batch = np.zeros((hps.batch_size, max_enc_seq_len), dtype=np.int32)
         self.enc_lens = np.zeros((hps.batch_size), dtype=np.int32)
         self.enc_padding_mask = np.zeros((hps.batch_size, max_enc_seq_len), dtype=np.float32)
 
         # Fill in the numpy arrays
         for i, ex in enumerate(example_list):
             self.enc_batch[i, :] = ex.enc_input[:]
+            self.enc_pos_batch[i, :] = ex.enc_pos_input[:]
+            self.enc_ner_batch[i, :] = ex.enc_ner_input[:]
             self.enc_lens[i] = ex.enc_len
             for j in xrange(ex.enc_len):
                 self.enc_padding_mask[i][j] = 1
@@ -211,6 +231,8 @@ class Batch(object):
     def store_orig_strings(self, example_list):
         """Store the original article and abstract strings in the Batch object"""
         self.original_articles = [ex.original_article for ex in example_list]  # list of lists
+        self.original_pos_articles = [ex.original_pos_article for ex in example_list]  # list of lists
+        self.original_ner_articles = [ex.original_ner_article for ex in example_list]  # list of lists
         self.original_abstracts = [ex.original_abstract for ex in example_list]  # list of lists
         self.original_abstracts_sents = [ex.original_abstract_sents for ex in example_list]  # list of list of lists
 
@@ -294,7 +316,7 @@ class Batcher(object):
 
         while True:
             try:
-                (article,
+                (article, article_pos, article_ner,
                  abstract) = input_gen.next()  # read the next example from file. article and abstract are both strings.
             except StopIteration:  # if there are no more examples:
                 tf.logging.info("The example generator for this example queue filling thread has exhausted data.")
@@ -308,7 +330,8 @@ class Batcher(object):
 
             abstract_sentences = [sent.strip() for sent in data.abstract2sents(
                 abstract)]  # Use the <s> and </s> tags in abstract to get a list of sentences.
-            example = Example(article, abstract_sentences, self._vocab, self._hps)  # Process into an Example.
+            example = Example(article, article_pos, article_ner, abstract_sentences,
+                              self._vocab, self._hps)  # Process into an Example.
             self._example_queue.put(example)  # place the Example in the example queue.
 
     def fill_batch_queue(self):
@@ -379,4 +402,4 @@ class Batcher(object):
             if len(article_text) == 0:  # See https://github.com/abisee/pointer-generator/issues/1
                 tf.logging.warning('Found an example with empty article text. Skipping it.')
             else:
-                yield (article_text, abstract_text)
+                yield (article_text, article_pos_text, article_ner_text, abstract_text)
