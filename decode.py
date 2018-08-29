@@ -247,7 +247,8 @@ def rouge_log(results_dict, dir_to_write):
 
 
 def get_decode_dir_name(ckpt_name):
-    """Make a descriptive name for the decode dir, including the name of the checkpoint we use to decode. This is called in single_pass mode."""
+    """Make a descriptive name for the decode dir,
+    including the name of the checkpoint we use to decode. This is called in single_pass mode."""
 
     if "train" in FLAGS.data_path:
         dataset = "train"
