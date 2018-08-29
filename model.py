@@ -285,7 +285,7 @@ class SummarizationModel(object):
             # Our encoder is bidirectional and our decoder is unidirectional
             # so we need to reduce the final encoder hidden state to the right size
             # to be the initial decoder hidden state
-            self._dec_in_state = self._reduce_states(fw_st, bw_st)
+            self._dec_in_state = self._reduce_states(fw_st, bw_st, sem_fw_st, sem_bw_st)
 
             # Add the decoder.
             with tf.variable_scope('decoder'):
@@ -294,7 +294,7 @@ class SummarizationModel(object):
 
             # Add the output projection to obtain the vocabulary distribution
             with tf.variable_scope('output_projection'):
-                w = tf.get_variable('w', [hps.hidden_dim, vsize], dtype=tf.float32, initializer=self.trunc_norm_init)
+                w = tf.get_variable('w', [hps.hidden_dim, word_vsize], dtype=tf.float32, initializer=self.trunc_norm_init)
                 v = tf.get_variable('v', [word_vsize], dtype=tf.float32, initializer=self.trunc_norm_init)
                 # vocab_scores is the vocabulary distribution before applying softmax.
                 # Each entry on the list corresponds to one decoder step

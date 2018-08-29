@@ -327,7 +327,8 @@ def main(unused_argv):
 
     # Make a namedtuple hps, containing the values of the hyperparameters that the model needs
     hparam_list = ['mode', 'lr', 'adagrad_init_acc', 'rand_unif_init_mag', 'trunc_norm_init_std', 'max_grad_norm',
-                   'hidden_dim', 'emb_dim', 'batch_size', 'max_dec_steps', 'max_enc_steps', 'coverage', 'cov_loss_wt',
+                   'hidden_dim', 'emb_dim', 'sem_emb_dim', 'batch_size', 'max_dec_steps',
+                   'max_enc_steps', 'coverage', 'cov_loss_wt',
                    'pointer_gen']
     hps_dict = {}
     for key, val in FLAGS.__flags.iteritems():  # for each flag
