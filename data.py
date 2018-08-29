@@ -138,7 +138,7 @@ class Vocab(object):
                self._count, self._id_to_word[self._count - 1])
         print "Finished constructing pos vocabulary of %i total words. Last word added: %s" % (
             self._pos_count, self._pos_id_to_word[self._pos_count - 1])
-        print "Finished constructing vocabulary of %i total words. Last word added: %s" % (
+        print "Finished constructing ner vocabulary of %i total words. Last word added: %s" % (
             self._ner_count, self._ner_id_to_word[self._ner_count - 1])
 
     def word2id(self, word):

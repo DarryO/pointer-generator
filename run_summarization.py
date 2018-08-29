@@ -313,7 +313,7 @@ def main(unused_argv):
             raise Exception("Logdir %s doesn't exist. Run in train mode to create it." % (FLAGS.log_root))
 
     # create a vocabulary
-    vocab = Vocab(FLAGS.vocab_path, FLAGS.pos_vocab_path, FLAGS.pos_vocab_path, FLAGS.vocab_size)
+    vocab = Vocab(FLAGS.vocab_path, FLAGS.pos_vocab_path, FLAGS.ner_vocab_path, FLAGS.vocab_size)
 
     # If in decode mode, set batch_size = beam_size
     # Reason: in decode mode, we decode one example at a time.
