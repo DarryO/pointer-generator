@@ -48,8 +48,9 @@ class Example(object):
         article_pos_words = article_pos.split()
         article_ner_words = article_ner.split()
 
-        assert len(article_words) == len(article_pos), "Words and pos tagging not equal!"
-        assert len(article_words) == len(article_ner), "Words and ner tagging not equal!"
+        assert len(article_words) == len(article_pos_words), "Words and pos tagging not equal! {} {}".format(
+            len(article_words), len(article_pos_words))
+        assert len(article_words) == len(article_ner_words), "Words and ner tagging not equal!"
 
         if len(article_words) > hps.max_enc_steps:
             article_words = article_words[:hps.max_enc_steps]
@@ -231,8 +232,8 @@ class Batch(object):
     def store_orig_strings(self, example_list):
         """Store the original article and abstract strings in the Batch object"""
         self.original_articles = [ex.original_article for ex in example_list]  # list of lists
-        self.original_pos_articles = [ex.original_pos_article for ex in example_list]  # list of lists
-        self.original_ner_articles = [ex.original_ner_article for ex in example_list]  # list of lists
+        self.original_pos_articles = [ex.original_article_pos for ex in example_list]  # list of lists
+        self.original_ner_articles = [ex.original_article_ner for ex in example_list]  # list of lists
         self.original_abstracts = [ex.original_abstract for ex in example_list]  # list of lists
         self.original_abstracts_sents = [ex.original_abstract_sents for ex in example_list]  # list of list of lists
 
