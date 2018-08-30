@@ -229,9 +229,10 @@ def attention_decoder(decoder_inputs, initial_state,
 
         # Get the weight matrix w_h and apply it to each encoder state to get (w_h h_i), the encoder features
         w_h = variable_scope.get_variable("W_h", [1, 1, attn_size, attention_vec_size])
+        w_h_ = variable_scope.get_variable("W_h_", [1, 1, attn_size, attention_vec_size])
         text_encoder_features = nn_ops.conv2d(text_encoder_states, w_h, [1, 1, 1, 1],
                                               "SAME")  # shape (batch_size,attn_length,1,attention_vec_size)
-        sem_encoder_features = nn_ops.conv2d(sem_encoder_states, w_h, [1, 1, 1, 1],
+        sem_encoder_features = nn_ops.conv2d(sem_encoder_states, w_h_, [1, 1, 1, 1],
                                              "SAME")  # shape (batch_size,attn_length,1,attention_vec_size)
 
         # Get the weight vectors v and w_c (w_c is for coverage)
@@ -247,7 +248,8 @@ def attention_decoder(decoder_inputs, initial_state,
             with variable_scope.variable_scope("coverage"):
                 w_sem_c = variable_scope.get_variable("w_sem_c", [1, 1, 1, attention_vec_size])
 
-        if text_prev_coverage is not None:  # for beam search mode with coverage
+        if text_prev_coverage is not None:
+            # for beam search mode with coverage
             # reshape from (batch_size, attn_length) to (batch_size, attn_len, 1, 1)
             text_prev_coverage = tf.expand_dims(tf.expand_dims(text_prev_coverage, 2), 3)
         if sem_prev_coverage is not None:
@@ -276,6 +278,7 @@ def attention_decoder(decoder_inputs, initial_state,
                                                                           w_c, v, w_sem_c, v_sem,
                                                                           enc_padding_mask, use_coverage,
                                                                           text_coverage, sem_coverage)
+
         for i, inp in enumerate(decoder_inputs):
             tf.logging.info("Adding attention_decoder timestep %i of %i", i, len(decoder_inputs))
             if i > 0:

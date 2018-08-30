@@ -106,7 +106,8 @@ class SummarizationModel(object):
                                                                                 dtype=tf.float32,
                                                                                 sequence_length=seq_len,
                                                                                 swap_memory=True)
-            encoder_outputs = tf.concat(axis=2, values=encoder_outputs)  # concatenate the forwards and backwards states
+            # concatenate the forwards and backwards states
+            encoder_outputs = tf.concat(axis=2, values=encoder_outputs)
         return encoder_outputs, fw_st, bw_st
 
     def _reduce_states(self, fw_st, bw_st, sem_fw_st, sem_bw_st):
@@ -289,12 +290,15 @@ class SummarizationModel(object):
 
             # Add the decoder.
             with tf.variable_scope('decoder'):
-                (decoder_outputs, self._dec_out_state, self._text_attn_dists, self._sem_attn_dists,
-                 self._p_gens, self._p_atts, self._text_coverage, self._sem_coverage) = self._add_decoder(emb_dec_inputs)
+                (decoder_outputs, self._dec_out_state,
+                 self._text_attn_dists, self._sem_attn_dists,
+                 self._p_gens, self._p_atts,
+                 self._text_coverage, self._sem_coverage) = self._add_decoder(emb_dec_inputs)
 
             # Add the output projection to obtain the vocabulary distribution
             with tf.variable_scope('output_projection'):
-                w = tf.get_variable('w', [hps.hidden_dim, word_vsize], dtype=tf.float32, initializer=self.trunc_norm_init)
+                w = tf.get_variable('w', [hps.hidden_dim, word_vsize],
+                                    dtype=tf.float32, initializer=self.trunc_norm_init)
                 v = tf.get_variable('v', [word_vsize], dtype=tf.float32, initializer=self.trunc_norm_init)
                 # vocab_scores is the vocabulary distribution before applying softmax.
                 # Each entry on the list corresponds to one decoder step
@@ -358,8 +362,8 @@ class SummarizationModel(object):
 
         if hps.mode == "decode":
             # We run decode beam search mode one decoder step at a time
-            assert len(
-                final_dists) == 1  # final_dists is a singleton list containing shape (batch_size, extended_vsize)
+            # final_dists is a singleton list containing shape (batch_size, extended_vsize)
+            assert len(final_dists) == 1
             final_dists = final_dists[0]
             # take the k largest probs. note batch_size=beam_size in decode mode
             topk_probs, self._topk_ids = tf.nn.top_k(final_dists,
